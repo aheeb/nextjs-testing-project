@@ -10,8 +10,19 @@ import { Loader2, Heart, MessageCircle, Share2, UserCircle } from "lucide-react"
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { Separator } from "~/components/ui/separator";
 
+type Post = {
+    id: string;
+    name: string;
+    createdAt: Date;
+    userId: string;
+    user: {
+        name?: string;
+        image?: string;
+    };
+};
+
 export function LatestPost() {
-    const [latestPost] = api.post.getLatest.useSuspenseQuery();
+    const { data: posts } = api.post.getAllPosts.useQuery();
     const utils = api.useUtils();
     const [name, setName] = useState("");
 
@@ -21,6 +32,20 @@ export function LatestPost() {
             setName("");
         },
     });
+
+    function formatTimestamp(date: Date) {
+        const now = new Date();
+        const diff = now.getTime() - date.getTime();
+
+        const minutes = Math.floor(diff / 60000);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes}m ago`;
+        if (hours < 24) return `${hours}h ago`;
+        return `${days}d ago`;
+    }
 
     return (
         <div className="space-y-6">
@@ -63,39 +88,47 @@ export function LatestPost() {
                 </CardHeader>
             </Card>
 
-            {/* Latest Post Card */}
-            {latestPost && (
-                <Card className="w-full">
-                    <CardHeader className="flex flex-row items-center gap-4">
-                        <Avatar>
-                            <AvatarFallback>
-                                <UserCircle className="w-full h-full" />
-                            </AvatarFallback>
-                        </Avatar>
-                        <div>
-                            <p className="font-semibold">You</p>
-                            <p className="text-sm text-muted-foreground">Just now</p>
-                        </div>
-                    </CardHeader>
-                    <CardContent>
-                        <p>{latestPost.name}</p>
-                    </CardContent>
-                    <Separator />
-                    <CardFooter className="justify-between py-4">
-                        <Button variant="ghost" size="sm" className="flex gap-2">
-                            <Heart className="w-4 h-4" /> Like
-                        </Button>
-                        <Button variant="ghost" size="sm" className="flex gap-2">
-                            <MessageCircle className="w-4 h-4" /> Comment
-                        </Button>
-                        <Button variant="ghost" size="sm" className="flex gap-2">
-                            <Share2 className="w-4 h-4" /> Share
-                        </Button>
-                    </CardFooter>
-                </Card>
-            )}
-
-            {!latestPost && (
+            {/* Posts Feed */}
+            {posts && posts.length > 0 ? (
+                <div className="space-y-4">
+                    {posts.map((post) => (
+                        <Card key={post.id} className="w-full">
+                            <CardHeader className="flex flex-row items-center gap-4">
+                                <Avatar>
+                                    {post.createdBy.image ? (
+                                        <AvatarImage src={post.createdBy.image} alt={post.createdBy.name ?? "User"} />
+                                    ) : (
+                                        <AvatarFallback>
+                                            <UserCircle className="w-full h-full" />
+                                        </AvatarFallback>
+                                    )}
+                                </Avatar>
+                                <div>
+                                    <p className="font-semibold">{post.createdBy.name ?? "Anonymous"}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {formatTimestamp(post.createdAt)}
+                                    </p>
+                                </div>
+                            </CardHeader>
+                            <CardContent>
+                                <p>{post.name}</p>
+                            </CardContent>
+                            <Separator />
+                            <CardFooter className="justify-between py-4">
+                                <Button variant="ghost" size="sm" className="flex gap-2">
+                                    <Heart className="w-4 h-4" /> Like
+                                </Button>
+                                <Button variant="ghost" size="sm" className="flex gap-2">
+                                    <MessageCircle className="w-4 h-4" /> Comment
+                                </Button>
+                                <Button variant="ghost" size="sm" className="flex gap-2">
+                                    <Share2 className="w-4 h-4" /> Share
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ))}
+                </div>
+            ) : (
                 <Card className="w-full">
                     <CardContent className="flex flex-col items-center justify-center py-8">
                         <p className="text-muted-foreground text-center">
